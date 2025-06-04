@@ -12,12 +12,22 @@ function VentasSection() {
     corte: 'http://localhost:3001/ventas/corte'
   };
 
-  useEffect(() => {
-    const hoy = new Date();
-    const fechaFormateada = hoy.toISOString().split('T')[0];
-    setFechaInicio(fechaFormateada);
-    setFechaFin(fechaFormateada);
+useEffect(() => {
+  const hoy = new Date();
+  const manana = new Date(hoy);
+  manana.setDate(hoy.getDate() + 1);
+
+  const formatoLocal = (fecha) => {
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  setFechaInicio(formatoLocal(hoy));
+  setFechaFin(formatoLocal(manana));
   }, []);
+
 
   const generarReporte = async () => {
     if (!fechaInicio || !fechaFin) {
