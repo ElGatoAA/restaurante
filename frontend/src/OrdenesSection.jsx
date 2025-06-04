@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 function OrdenesSection() {
   const [productos, setProductos] = useState([]);
@@ -8,6 +9,8 @@ function OrdenesSection() {
   const [categoriaFilter, setCategoriaFilter] = useState('');
   const [ordenActual, setOrdenActual] = useState({ items: [], total: 0 });
   const [cantidades, setCantidades] = useState({});
+  const location = useLocation();
+  const ordenEditada = location.state?.orden;
 
   const API = {
     productos: 'http://localhost:3001/productos',
@@ -18,6 +21,16 @@ function OrdenesSection() {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  useEffect(() => {
+    if (ordenEditada) {
+      setMesa(ordenEditada.mesa || '');
+      setOrdenActual({
+        items: ordenEditada.items || [],
+        total: ordenEditada.items?.reduce((sum, i) => sum + Number(i.subtotal || 0), 0) || 0
+      });
+    }
+  }, [ordenEditada]);
 
   const cargarDatos = async () => {
     try {
@@ -39,11 +52,9 @@ function OrdenesSection() {
   const agregarProducto = (productoId) => {
     const cantidad = cantidades[productoId] || 1;
     const producto = productos.find(p => p.id === productoId);
-
     setOrdenActual(prev => {
       const existente = prev.items.find(i => i.producto_id === productoId);
       let nuevosItems;
-
       if (existente) {
         nuevosItems = prev.items.map(i =>
           i.producto_id === productoId
@@ -63,11 +74,9 @@ function OrdenesSection() {
           subtotal: producto.precio * cantidad
         }];
       }
-
       const nuevoTotal = nuevosItems.reduce((sum, i) => sum + i.subtotal, 0);
       return { items: nuevosItems, total: nuevoTotal };
     });
-
     setCantidades(prev => ({ ...prev, [productoId]: 1 }));
   };
 
@@ -84,7 +93,6 @@ function OrdenesSection() {
       alert('Agrega al menos un producto');
       return;
     }
-
     try {
       await axios.post(API.ordenes, {
         mesa,
@@ -111,9 +119,8 @@ function OrdenesSection() {
   return (
     <section>
       <h2>Crear Nueva Orden</h2>
-
       <div className="form-container">
-        <label>Mesa:</label>
+               <label>Mesa:</label>
         <input value={mesa} onChange={(e) => setMesa(e.target.value)} />
 
         <label>Filtrar por categoría:</label>
@@ -136,10 +143,12 @@ function OrdenesSection() {
                 type="number"
                 min="1"
                 value={cantidades[prod.id] || 1}
-                onChange={(e) => setCantidades(prev => ({
-                  ...prev,
-                  [prod.id]: parseInt(e.target.value) || 1
-                }))}
+                onChange={(e) =>
+                  setCantidades(prev => ({
+                    ...prev,
+                    [prod.id]: parseInt(e.target.value) || 1
+                  }))
+                }
               />
               <button onClick={() => agregarProducto(prod.id)}>Agregar</button>
             </div>
@@ -151,15 +160,13 @@ function OrdenesSection() {
         <h4>Productos en la Orden</h4>
         {ordenActual.items.map((item, index) => (
           <div key={index} style={{ margin: '10px 0' }}>
-            {item.nombre} x{item.cantidad} = ${item.subtotal.toFixed(2)}
+            {item.nombre} x{item.cantidad} = ${Number(item.subtotal).toFixed(2)}
             <button onClick={() => removerItem(index)} style={{ marginLeft: '10px' }}>Eliminar</button>
           </div>
         ))}
-
         <div className="order-total">
           Total: ${ordenActual.total.toFixed(2)}
         </div>
-
         <button onClick={guardarOrden} style={{ marginRight: '10px' }}>Guardar Orden</button>
         <button onClick={limpiarOrden}>Limpiar</button>
       </div>
